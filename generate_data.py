@@ -509,7 +509,7 @@ def generate_lunar_data():
         1984: {"months": [1,0,1,0,1,0,1,0,1,0,1,0,1], "leap": 10},
         1987: {"months": [1,0,1,0,1,1,0,1,0,1,0,1,0], "leap": 6},
         1990: {"months": [1,0,1,0,1,0,0,1,0,1,0,1,1], "leap": 5},
-        1991: {"months": [0,1,0,1,0,1,0,1,1,0,1,0], "leap": 0},
+        1991: {"months": [0,0,0,1,0,1,0,1,1,0,1,0], "leap": 0},
         1992: {"months": [1,0,1,0,1,0,0,1,0,1,0,1], "leap": 0},
         1993: {"months": [1,0,1,0,1,0,0,1,0,1,0,1,1], "leap": 3},
         1995: {"months": [1,1,0,1,0,1,0,1,0,1,0,1,0], "leap": 8},
@@ -582,7 +582,6 @@ def generate_lunar_data():
     lunar_lines.append("      daysFromPrevLNY -= len;")
     lunar_lines.append("    }")
     lunar_lines.append("    if (lm === 0) { lm = 12; ld = daysFromPrevLNY || 30; }")
-    lunar_lines.append("    ld = Math.min(ld + 1, 30);")
     lunar_lines.append("    return { lyear: year - 1, lmonth: lm, lday: ld || 1, isLeap: isLeap };")
     lunar_lines.append("  } else {")
     lunar_lines.append("    let daysFromLNY = birthDOY - data.lnyDOY + 1;")
@@ -593,7 +592,6 @@ def generate_lunar_data():
     lunar_lines.append("      daysFromLNY -= len;")
     lunar_lines.append("    }")
     lunar_lines.append("    if (lm === 0) { lm = 12; ld = daysFromLNY || 30; }")
-    lunar_lines.append("    ld = Math.min(ld + 1, 30);")
     lunar_lines.append("    return { lyear: year, lmonth: lm || 1, lday: ld || 1, isLeap: isLeap };")
     lunar_lines.append("  }")
     lunar_lines.append("}")

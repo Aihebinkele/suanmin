@@ -1320,7 +1320,7 @@ const LUNAR_DATA = {
   1989: { lny: [2,6], lnyDOY: 36, months: [30, 29, 30, 29, 30, 29, 29, 30, 29, 30, 29, 30], leap: 0 },
   // 1990s
   1990: { lny: [1,27], lnyDOY: 26, months: [30, 29, 30, 29, 30, 29, 29, 30, 29, 30, 29, 30, 30], leap: 5 },
-  1991: { lny: [2,15], lnyDOY: 45, months: [29, 30, 29, 30, 29, 30, 29, 30, 30, 29, 30, 29], leap: 0 },
+  1991: { lny: [2,15], lnyDOY: 45, months: [29, 29, 29, 30, 29, 30, 29, 30, 30, 29, 30, 29], leap: 0 },
   1992: { lny: [2,4], lnyDOY: 34, months: [30, 29, 30, 29, 30, 29, 29, 30, 29, 30, 29, 30], leap: 0 },
   1993: { lny: [1,23], lnyDOY: 22, months: [30, 29, 30, 29, 30, 29, 29, 30, 29, 30, 29, 30, 30], leap: 3 },
   1994: { lny: [2,10], lnyDOY: 40, months: [30, 29, 30, 29, 30, 29, 29, 30, 29, 30, 29, 30], leap: 0 },
@@ -1458,7 +1458,6 @@ function gregToLunar(year, month, day) {
       daysFromPrevLNY -= len;
     }
     if (lm === 0) { lm = 12; ld = daysFromPrevLNY || 30; }
-    ld = Math.min(ld + 1, 30);
     return { lyear: year - 1, lmonth: lm, lday: ld || 1, isLeap: isLeap };
   } else {
     let daysFromLNY = birthDOY - data.lnyDOY + 1;
@@ -1469,7 +1468,6 @@ function gregToLunar(year, month, day) {
       daysFromLNY -= len;
     }
     if (lm === 0) { lm = 12; ld = daysFromLNY || 30; }
-    ld = Math.min(ld + 1, 30);
     return { lyear: year, lmonth: lm || 1, lday: ld || 1, isLeap: isLeap };
   }
 }
