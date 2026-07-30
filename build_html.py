@@ -1144,12 +1144,21 @@ function renderPaipan(result) {
   // Lunar birthday with Chinese formatting
   const lunar = gregToLunar ? gregToLunar(result.year, result.month, result.day) : null;
   const LUNAR_MONTHS = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+  const LUNAR_MONTHS_NUM = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
   const LUNAR_DAYS = ['','初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
   let lunarStr = '';
   if (lunar) {
     const lmName = LUNAR_MONTHS[lunar.lmonth - 1] || lunar.lmonth;
+    const lmNum = LUNAR_MONTHS_NUM[lunar.lmonth - 1] || lunar.lmonth;
     const ldName = LUNAR_DAYS[lunar.lday] || lunar.lday;
-    lunarStr = `农历${lunar.lyear}年${lmName}月${ldName}`;
+    // Year to Chinese numerals
+    const CN_NUM = ['零','一','二','三','四','五','六','七','八','九'];
+    let yearCN = '';
+    const yStr = String(lunar.lyear);
+    for (let ci = 0; ci < yStr.length; ci++) {
+      yearCN += CN_NUM[parseInt(yStr[ci])];
+    }
+    lunarStr = '农历 ' + yearCN + '年 ' + lmName + '月（' + lmNum + '月）' + ldName;
   }
   const yearAnimal = ZODIAC[p[0].branchIdx];
   const yearNayin = p[0].nayin;
@@ -1157,7 +1166,7 @@ function renderPaipan(result) {
   let html = `<div style="text-align:center;margin:20px 0">
     <div style="font-family:var(--font-heading);font-size:1.4rem;letter-spacing:4px;color:var(--cinnabar)">${result.ganZao} ${p[0].gz} ${p[1].gz} ${p[2].gz} ${p[3].gz}</div>
     <div style="margin-top:8px;font-size:0.9rem;color:var(--text-secondary)">
-      ${lunarStr ? `<span style="margin-right:12px">🗓 ${lunarStr}</span>` : ''}
+      ${lunarStr ? `<span style="margin-right:12px">${lunarStr}</span>` : ''}
       <span style="margin-right:12px">🐲 属${yearAnimal}</span>
       <span style="margin-right:12px">📅 ${p[0].gz}年</span>
       <span>🔮 ${yearNayin}命</span>
