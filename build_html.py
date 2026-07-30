@@ -1,5 +1,5 @@
 """
-将calendar_data.js中的数据和额外JS算法组装到shensuanzi.html中。
+将calendar_data.js中的数据和额外JS算法组装到index.html中。
 保留HTML骨架中SECTION 1的核心常量，从SECTION 2标记处注入日历数据+算法。
 """
 import re
@@ -9,7 +9,7 @@ with open(r"F:\FTP\操作问题汇总\神算子\calendar_data.js", "r", encoding
     cal_data = f.read()
 
 # Read the HTML skeleton (only HTML+CSS matters, JS is fully replaced)
-with open(r"F:\FTP\操作问题汇总\神算子\shensuanzi.html", "r", encoding="utf-8") as f:
+with open(r"F:\FTP\操作问题汇总\神算子\index.html", "r", encoding="utf-8") as f:
     html = f.read()
 
 # Split at <script> and </script> — replace everything between with complete JS
@@ -1724,14 +1724,26 @@ function renderShensha(result) {
     const uniqueSS = Object.keys(grouped);
     const jiCount = uniqueSS.filter(n => (SS_INFO[n]||{}).type === '吉').length;
     const xiongCount = uniqueSS.filter(n => (SS_INFO[n]||{}).type === '凶').length;
-    html += `<div class="analysis-block"><h4>📊 神煞统计</h4>
-      <div class="highlight-grid">
-        <div class="highlight-item"><div class="hi-label">吉神</div><div class="hi-value" style="color:var(--jade)">${jiCount}</div></div>
-        <div class="highlight-item"><div class="hi-label">凶煞</div><div class="hi-value" style="color:var(--cinnabar)">${xiongCount}</div></div>
-        <div class="highlight-item"><div class="hi-label">双刃/中性</div><div class="hi-value" style="color:var(--gold)">${uniqueSS.length - jiCount - xiongCount}</div></div>
-        <div class="highlight-item"><div class="hi-label">总计</div><div class="hi-value">${uniqueSS.length}</div></div>
-      </div>
-    </div>`;
+    html += '<div class="analysis-block"><h4>📊 神煞统计</h4>';
+    const ssTotal = uniqueSS.length;
+    const ssNeutral = ssTotal - jiCount - xiongCount;
+    const ssStats = [
+      { label:'吉神', icon:'🟢', cnt:jiCount, color:'var(--jade)' },
+      { label:'凶煞', icon:'🔴', cnt:xiongCount, color:'var(--cinnabar)' },
+      { label:'双刃/中性', icon:'🟡', cnt:ssNeutral, color:'var(--gold)' },
+      { label:'总计', icon:'⭐', cnt:ssTotal, color:'var(--ink-black)' }
+    ];
+    ssStats.forEach(function(s) {
+      const pct2 = ssTotal > 0 ? Math.round(s.cnt / ssTotal * 100) : 0;
+      html += '<div style=\"display:flex;align-items:center;gap:10px;padding:5px 10px;margin:4px 0;background:var(--paper-light);border-radius:6px\">';
+      html += '<span style=\"font-size:1.1rem;width:26px;text-align:center\">' + s.icon + '</span>';
+      html += '<span style=\"width:75px;font-weight:bold;font-size:0.85rem;color:' + s.color + '\">' + s.label + '</span>';
+      html += '<span style=\"width:24px;text-align:center;font-family:var(--font-title);font-size:1rem;color:' + s.color + '\">' + s.cnt + '</span>';
+      html += '<div style=\"flex:1;height:14px;background:#ebe2cf;border-radius:7px;overflow:hidden\"><div style=\"width:' + pct2 + '%;height:100%;background:' + s.color + ';border-radius:7px;transition:width 0.6s ease\"></div></div>';
+      html += '<span style=\"font-size:0.75rem;color:var(--ink-light);min-width:30px\">' + pct2 + '%</span>';
+      html += '</div>';
+    });
+    html += '</div>';
   }
 
   html += `<div class="analysis-block"><h4>⚠ 神煞使用须知</h4>
@@ -3218,7 +3230,7 @@ window.addEventListener('DOMContentLoaded', init);
 final_html = pre_script + algo_js.strip() + post_body
 
 # Write final HTML
-with open(r"F:\FTP\操作问题汇总\神算子\shensuanzi.html", "w", encoding="utf-8") as f:
+with open(r"F:\FTP\操作问题汇总\神算子\index.html", "w", encoding="utf-8") as f:
     f.write(final_html)
 
-print(f"Built shensuanzi.html ({len(final_html)} bytes, ~{final_html.count(chr(10))} lines)")
+print(f"Built index.html ({len(final_html)} bytes, ~{final_html.count(chr(10))} lines)")

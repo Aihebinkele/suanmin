@@ -1,5 +1,5 @@
 """
-Replace the entire <style>...</style> section in shensuanzi.html with new Taoist-themed CSS.
+Replace the entire <style>...</style> section in index.html with new Taoist-themed CSS.
 """
 import re
 
@@ -451,7 +451,7 @@ body::before {
   .result-panel { display: block !important; }
 }"""
 
-with open(r"F:\FTP\操作问题汇总\神算子\shensuanzi.html", "r", encoding="utf-8") as f:
+with open(r"F:\FTP\操作问题汇总\神算子\index.html", "r", encoding="utf-8") as f:
     html = f.read()
 
 # Replace everything between <style> and </style>
@@ -459,7 +459,7 @@ old_style = re.search(r'<style>.*?</style>', html, re.DOTALL).group()
 new_style = '<style>\n' + NEW_CSS.strip() + '\n</style>'
 html = html.replace(old_style, new_style)
 
-with open(r"F:\FTP\操作问题汇总\神算子\shensuanzi.html", "w", encoding="utf-8") as f:
+with open(r"F:\FTP\操作问题汇总\神算子\index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
 print(f"CSS updated. New CSS size: {len(NEW_CSS)} bytes, ~{NEW_CSS.count(chr(10))} lines")
