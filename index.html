@@ -4815,6 +4815,10 @@ function exportToPDF() {
   const panel = document.getElementById('result-panel');
   if (!panel || !panel.classList.contains('visible')) { alert('请先生成分析结果'); return; }
 
+  // Mobile detection
+  const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
+  const tabBar = document.getElementById('tab-bar');
+
   // Show all tabs
   const tabContents = document.querySelectorAll('.tab-content');
   const activeTabs = [];
@@ -4847,10 +4851,28 @@ function exportToPDF() {
   html += '<p style=\"text-align:center;color:#9b8e7a;font-size:0.7rem\">' + new Date().toLocaleString() + ' | 华山八字命理分析 | 仅供参考</p>';
   html += '</body></html>';
 
-  var w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-  w.onload = function() { w.print(); };
+  if (isMobile) {
+    var origDisplay = [];
+    tabContents.forEach(function(tc, i) { origDisplay.push(tc.style.display); tc.style.display = 'block'; tc.style.marginBottom = '16px'; });
+    if (tabBar) tabBar.style.display = 'none';
+    var btns = document.querySelectorAll('.btn-export, .btn-primary, .btn-secondary, .btn-danger, .mode-toggle');
+    btns.forEach(function(b) { b.style.display = 'none'; });
+    setTimeout(function() {
+      window.print();
+      tabContents.forEach(function(tc, i) { tc.style.display = origDisplay[i]; });
+      if (tabBar) tabBar.style.display = '';
+      btns.forEach(function(b) { b.style.display = ''; });
+    }, 300);
+  } else {
+    var w = window.open('', '_blank');
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      w.onload = function() { w.print(); };
+    } else {
+      window.print();
+    }
+  }
 }
 
 function runSingleMode() {
