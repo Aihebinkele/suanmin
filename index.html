@@ -1826,14 +1826,16 @@ function calcChongHe(pillars) {
   // Three combinations
   for (const sh of DZ_SANHE) {
     const found = [];
+    const foundB = [];
     for (const p of pillars) {
-      if (sh.zhi.includes(p.branch)) found.push(p.name);
+      if (sh.zhi.includes(p.branch)) { found.push(p.name); foundB.push(p.branch); }
     }
     if (found.length >= 2) {
       sanHeList.push({
         zhi: sh.zhi.join(""),
         hua: sh.hua,
-        found,
+        found: foundB,
+        foundNames: found,
         meaning: `地支${found.join("、")}形成${sh.hua}局之力。力量集中于${sh.hua}方向。`
       });
     }
@@ -1992,7 +1994,21 @@ function analyzeLuckPillar(result, luckGZ, label) {
     text: `五行属${luckWx}，贵人宜向${wxDir[luckWx]||'中部'}发展，宜着${wxColor[luckWx]||'黄色'}衣物`
   };
 
-  return { label, tgName, career, marriage, wealth, health, benefactor };
+  // 学业
+  let study = { level:'平', text:'' };
+  if (tgName === '正印') { study.level='吉'; study.text='正印运，学业精进，适合考证、升学、深造。理解力强，学习效率高。'; }
+  else if (tgName === '偏印') { study.level='平'; study.text='偏印运，适合钻研冷门学科或技术，但易偏科。专注一门深入效果更好。'; }
+  else if (tgName === '食神') { study.level='吉'; study.text='食神运，寓学于乐，适合艺术/设计/创意类学习。学得开心且成果不错。'; }
+  else if (tgName === '正官') { study.level='吉'; study.text='正官运，自律性强，适合系统性学习。按部就班打基础，考运不错。'; }
+  else if (tgName === '七杀') { study.level='平'; study.text='七杀运，压力大但成长快。适合竞赛、考研等高强度学习，越战越强。'; }
+  else if (tgName === '伤官') { study.level='平'; study.text='伤官运，才华突出但易分心。适合创意类学习，需培养专注力。'; }
+  else if (tgName === '正财') { study.level='平'; study.text='正财运，适合实用技能学习。学以致用，与实际工作结合效果好。'; }
+  else if (tgName === '偏财') { study.level='平'; study.text='偏财运，学习灵活但不够系统。适合短期培训、快速获取技能。'; }
+  else if (tgName === '比肩') { study.level='平'; study.text='比肩运，适合团队学习、讨论式学习。找到学习伙伴效果更好。'; }
+  else if (tgName === '劫财') { study.level='平'; study.text='劫财运，学习上有竞争压力。适合在竞争中激发斗志，但需防分心。'; }
+  else { study.text = '学业运势平稳，按部就班即可。'; }
+
+  return { label, tgName, career, marriage, wealth, health, benefactor, study };
 }
 
 function analyzeLiunian(result, yearGZ) {
@@ -2066,6 +2082,58 @@ function analyzeLiunian(result, yearGZ) {
 // ============================================================
 //  SECTION 10: SHENSHA (STAR SPIRITS)
 // ============================================================
+
+// ============================================================
+//  SECTION 10b: 长生十二宫
+// ============================================================
+function getSanHeLiunian(result, sanHe) {
+  const liunianBranch = DZ[result.dayun.liunianGZ.branchIdx];
+  const dayunBranch = result.dayun.currentDayun.branch;
+  // sanHe.zhi is a string like '申子辰', split into array
+  const allZhi = sanHe.zhi.split('');
+  const missing = allZhi.filter(function(z){return !sanHe.found.includes(z)});
+  let advice = '';
+  if (missing.includes(liunianBranch)) {
+    advice = '今年流年<strong>' + liunianBranch + '</strong>补齐三合局，今年可激发该三合局的完整力量！';
+  } else if (missing.includes(dayunBranch)) {
+    advice = '当前大运<strong>' + dayunBranch + '</strong>补齐三合局，此十年内三合力量完整。';
+  } else {
+    advice = '今年流年' + liunianBranch + '尚未补齐，需等待后续大运流年。';
+  }
+  return advice;
+}
+
+function getLiunianWxAdvice(result) {
+  const liunianGZ = result.dayun.liunianGZ;
+  const yrStemWx = WX_TG[liunianGZ.stemIdx];
+  const yrBranchWx = WX_DZ[liunianGZ.branchIdx];
+  const dayWx = WX_TG[result.dayStemIdx];
+  const overWang = result.wuxing.overWang.map(function(o){return o.wx});
+  const missing = result.wuxing.missing.map(function(m){return m.wx});
+
+  let advice = '';
+  if (missing.includes(yrStemWx) || missing.includes(yrBranchWx)) {
+    advice = '流年所带' + yrStemWx + '/' + yrBranchWx + '补足命局缺失，是弥补短板的利好年份，宜把握。';
+  } else if (overWang.includes(yrStemWx) || overWang.includes(yrBranchWx)) {
+    advice = '流年所带' + yrStemWx + '/' + yrBranchWx + '加重命局过旺，需注意防范相关领域过度。';
+  } else {
+    advice = '流年五行与命局较为协调，运势平稳。';
+  }
+  return advice;
+}
+
+function calcChangSheng12(stemIdx, branchIdx) {
+  // 长生十二宫: 长生/沐浴/冠带/临官/帝旺/衰/病/死/墓/绝/胎/养
+  const STAGES = ['长生','沐浴','冠带','临官','帝旺','衰','病','死','墓','绝','胎','养'];
+  // 天干长生起始地支: 甲亥,乙午,丙寅,丁酉,戊寅,己酉,庚巳,辛子,壬申,癸卯
+  const START_BRANCH = [11,6,2,9,2,9,5,0,8,3]; // 甲=亥(11),乙=午(6),...
+  const startB = START_BRANCH[stemIdx];
+  // 阳干顺排(甲丙戊庚壬), 阴干逆排(乙丁己辛癸)
+  const isYang = YY_TG[stemIdx] === 1;
+  let offset = (branchIdx - startB + 12) % 12;
+  if (!isYang) offset = (12 - offset) % 12;
+  return STAGES[offset];
+}
 
 function calcShensha(pillars, dayStemIdx) {
   const result = [];
@@ -2378,7 +2446,7 @@ function generateInterpretation(result) {
   }
   // 平衡的五行
   for (const bl of wx.balanced) {
-    wxDetails.push(bl.wx + '平衡（' + bl.cnt + '个），禀赋适中，可根据大运流年调整倾向。');
+    wxDetails.push(bl.wx + '平衡（' + bl.cnt + '个），禀赋适中，可根据大运流年调整倾向。今年' + result.dayun.currentYear + '年（' + result.dayun.currentLiunian + '）流年五行' + WX_TG[result.dayun.liunianGZ.stemIdx]+WX_DZ[result.dayun.liunianGZ.branchIdx] + '，' + getLiunianWxAdvice(result));
   }
   interp.wuxing = wxDetails.join("<br>");
 
@@ -2544,6 +2612,10 @@ function renderPaipan(result) {
     <tr><td>十神</td>${result.tenGods.map(t => `<td><span style="font-weight:bold;color:${t.type==='self'?'var(--cinnabar)':t.type==='正'?'var(--jade)':'var(--gold)'}">${t.short}</span></td>`).join('')}</tr>
     <tr><td>正/偏</td>${result.tenGods.map(t => `<td style="font-size:0.8rem;color:var(--text-muted)">${t.type==='self'?'日主':t.type}</td>`).join('')}</tr>
     <tr><td>藏干</td>${p.map(pp => `<td style="font-size:0.8rem;color:var(--text-muted)">${(DZ_CG[pp.branch]||[]).join(' ')}</td>`).join('')}</tr>
+    <tr><td>长生十二宫</td>${p.map(pp => {
+      const stage = calcChangSheng12(pp.stemIdx, pp.branchIdx);
+      return `<td style="font-size:0.82rem;color:var(--ink-gray)">${stage}</td>`;
+    }).join('')}</tr>
     <tr><td>属相</td>${p.map(pp => `<td style="color:var(--text-secondary)">${ZODIAC[pp.branchIdx]}</td>`).join('')}</tr>
     <tr><td>五行</td>${p.map(pp => {
       const stemWx = WX_TG[pp.stemIdx], branchWx = WX_DZ[pp.branchIdx];
@@ -2696,12 +2768,50 @@ function renderWuxing(result) {
 
 function renderShishen(result) {
   let html = `<table class="paipan-table">
-    <tr><th>柱位</th><th>天干</th><th>十神</th><th>正/偏</th><th>简称</th></tr>`;
+    <tr><th>柱位</th><th>天干</th><th>天干十神</th><th>正/偏</th><th>简称</th></tr>`;
   result.tenGods.forEach(t => {
     html += `<tr>
       <td>${t.pillar}</td><td>${t.stem||''}</td>
       <td>${t.name}</td><td>${t.type==='self'?'—':t.type}</td><td>${t.short}</td>
     </tr>`;
+  });
+  // Add a spacer row
+  html += `<tr style="height:8px;background:transparent"><td colspan="5"></td></tr>`;
+  html += `<tr><th>柱位</th><th>地支</th><th>地支藏干十神</th><th>正/偏</th><th>藏干</th></tr>`;
+  result.pillars.forEach(p => {
+    const cg = DZ_CG[p.branch] || [];
+    if (cg.length === 0) {
+      html += `<tr><td>${p.name}</td><td>${p.branch}</td><td colspan="3" style="color:var(--text-muted)">—</td></tr>`;
+      return;
+    }
+    // For each hidden stem, calculate its ten god
+    cg.forEach((hStem, hi) => {
+      const hStemIdx = TG.indexOf(hStem);
+      if (hStemIdx < 0) return;
+      const dayStemIdx = result.dayStemIdx;
+      if (hStemIdx === dayStemIdx && p.name === '日柱') {
+        html += `<tr><td>${hi===0?p.name:''}</td><td>${hi===0?p.branch:''}</td><td>日主</td><td>—</td><td>${hStem}（本气）</td></tr>`;
+        return;
+      }
+      const dayWx = WX_TG[dayStemIdx], hWx = WX_TG[hStemIdx];
+      const dayYy = YY_TG[dayStemIdx], hYy = YY_TG[hStemIdx];
+      const wxDiff = (wxIdx(hWx) - wxIdx(dayWx) + 5) % 5;
+      const sameYY = dayYy === hYy;
+      let shenIdx;
+      if (hStemIdx === dayStemIdx) shenIdx = sameYY ? 0 : 1;
+      else if (wxDiff === 1) shenIdx = sameYY ? 2 : 3;
+      else if (wxDiff === 2) shenIdx = sameYY ? 4 : 5;
+      else if (wxDiff === 3) shenIdx = sameYY ? 7 : 6;
+      else shenIdx = sameYY ? 9 : 8;
+      const label = hi === 0 ? '本气' : hi === 1 ? '中气' : '余气';
+      html += `<tr>
+        <td style="font-size:0.8rem">${hi===0?p.name:''}</td>
+        <td style="font-size:0.8rem">${hi===0?p.branch:''}</td>
+        <td style="font-size:0.82rem">${SHISHEN_FULL[shenIdx]}</td>
+        <td style="font-size:0.82rem">${sameYY?'偏':'正'}</td>
+        <td style="font-size:0.78rem;color:var(--text-muted)">${hStem}（${label}）</td>
+      </tr>`;
+    });
   });
   html += `</table>`;
 
@@ -2715,10 +2825,40 @@ function renderShishen(result) {
     html += `</div>`;
   }
 
-  // === 十神分布 ===
+  // === 十神分布 (区分天干/地支) ===
   html += '<div class="analysis-block"><h4>📊 十神分布</h4>';
+
+  // Count天干十神 separately
+  const tgShenCount = {};
   const shenSorted = Object.entries(result.pattern.shenCount).sort((a,b) => b[1]-a[1]);
-  const maxShenCnt = Math.max(...Object.values(result.pattern.shenCount), 1);
+  result.tenGods.forEach(function(t) {
+    if (t.name === '日主') return;
+    tgShenCount[t.name] = (tgShenCount[t.name]||0) + 1;
+  });
+
+  // Count地支藏干十神 (all hidden stems)
+  const dgShenCount = {};
+  result.pillars.forEach(function(p) {
+    const cg = DZ_CG[p.branch] || [];
+    cg.forEach(function(h) {
+      const hIdx = TG.indexOf(h);
+      if (hIdx < 0) return;
+      if (hIdx === result.dayStemIdx && p.name === '日柱') return;
+      const dayWx = WX_TG[result.dayStemIdx], hWx = WX_TG[hIdx];
+      const wxDiff = (wxIdx(hWx) - wxIdx(dayWx) + 5) % 5;
+      const sameYY = YY_TG[result.dayStemIdx] === YY_TG[hIdx];
+      let sIdx;
+      if (hIdx === result.dayStemIdx) sIdx = 0;
+      else if (wxDiff === 1) sIdx = sameYY ? 2 : 3;
+      else if (wxDiff === 2) sIdx = sameYY ? 4 : 5;
+      else if (wxDiff === 3) sIdx = sameYY ? 7 : 6;
+      else sIdx = sameYY ? 9 : 8;
+      const sName = SHISHEN_FULL[sIdx];
+      dgShenCount[sName] = (dgShenCount[sName]||0) + 1;
+    });
+  });
+
+  const allShenNames = [...new Set([...Object.keys(tgShenCount), ...Object.keys(dgShenCount)])];
   const shenColors = {
     "比肩":"#5b8c5a","劫财":"#3a6186","食神":"#c9a84c","伤官":"#d94a4a","偏财":"#8b6914",
     "正财":"#b8942e","正官":"#4a7c59","七杀":"#c43a31","正印":"#6b9a78","偏印":"#9b6b9b","日主":"#1a1410"
@@ -2727,20 +2867,44 @@ function renderShishen(result) {
     "比肩":"🤝","劫财":"⚔️","食神":"🍃","伤官":"💎","偏财":"🎲",
     "正财":"💰","正官":"🎖️","七杀":"⚡","正印":"📚","偏印":"🔮","日主":"☯️"
   };
-  html += '<div style="display:flex;flex-direction:column;gap:8px">';
-  shenSorted.forEach(function(_ref) {
-    var name = _ref[0], cnt = _ref[1];
-    var pct = Math.round(cnt / maxShenCnt * 100);
+  // Sort by total
+  allShenNames.sort(function(a,b){
+    return ((tgShenCount[b]||0)+(dgShenCount[b]||0)) - ((tgShenCount[a]||0)+(dgShenCount[a]||0));
+  });
+  const maxTotal = Math.max(...allShenNames.map(function(n){return (tgShenCount[n]||0)+(dgShenCount[n]||0)}), 1);
+
+  html += '<div style="display:flex;flex-direction:column;gap:5px">';
+  html += '<div style="display:flex;align-items:center;gap:8px;padding:2px 8px;font-size:0.72rem;color:var(--ink-light);margin-bottom:4px"><span style="width:28px"></span><span style="width:50px"></span><span style="flex:1;text-align:center;font-weight:bold;color:#5b8c5a">天干十神（外显）</span><span style="width:2px;background:#d4cbb8;align-self:stretch"></span><span style="flex:1;text-align:center;font-weight:bold;color:#3a6186">地支藏干（内在）</span></div>';
+
+  allShenNames.forEach(function(name) {
+    var tgCnt = tgShenCount[name] || 0;
+    var dgCnt = dgShenCount[name] || 0;
     var color = shenColors[name] || '#8b8170';
     var icon = shenIcons[name] || '◆';
-    html += '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:rgba(255,255,255,0.7);border-radius:6px;border:1px solid #e8e0d0">';
-    html += '<span style="font-size:1.2rem;width:28px;text-align:center">' + icon + '</span>';
-    html += '<span style="width:50px;font-weight:bold;font-size:0.9rem;color:' + color + '">' + name + '</span>';
-    html += '<span style="width:24px;text-align:center;font-family:var(--font-title);font-size:1.1rem;color:' + color + '">' + cnt + '</span>';
-    html += '<div style="flex:1;height:16px;background:#ebe2cf;border-radius:8px;overflow:hidden"><div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:8px;transition:width 0.6s ease"></div></div>';
-    html += '<span style="font-size:0.75rem;color:var(--ink-light);min-width:32px">' + pct + '%</span>';
+
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:var(--paper-light);border-radius:6px;border:1px solid #e8e0d0">';
+    html += '<span style="font-size:1rem;width:28px;text-align:center">' + icon + '</span>';
+    html += '<span style="width:50px;font-weight:bold;font-size:0.85rem;color:' + color + '">' + name + '</span>';
+
+    // Left bar:天干
+    var tgPct = maxTotal > 0 ? Math.round(tgCnt / maxTotal * 100) : 0;
+    html += '<div style="flex:1;display:flex;align-items:center;gap:4px">';
+    html += '<span style="font-size:0.8rem;min-width:16px;text-align:center;color:' + color + ';font-weight:bold">' + (tgCnt||'—') + '</span>';
+    html += '<div style="flex:1;height:14px;background:#ebe2cf;border-radius:7px;overflow:hidden"><div style="width:' + tgPct + '%;height:100%;background:' + color + ';border-radius:7px"></div></div>';
+    html += '</div>';
+
+    // Divider
+    html += '<span style="width:2px;background:#d4cbb8;align-self:stretch"></span>';
+
+    // Right bar:地支
+    var dgPct = maxTotal > 0 ? Math.round(dgCnt / maxTotal * 100) : 0;
+    html += '<div style="flex:1;display:flex;align-items:center;gap:4px">';
+    html += '<span style="font-size:0.8rem;min-width:16px;text-align:center;color:' + color + '">' + (dgCnt||'—') + '</span>';
+    html += '<div style="flex:1;height:14px;background:#ebe2cf;border-radius:7px;overflow:hidden"><div style="width:' + dgPct + '%;height:100%;background:' + color + ';opacity:0.55;border-radius:7px"></div></div>';
+    html += '</div>';
     html += '</div>';
   });
+  html += '<p style="font-size:0.72rem;color:var(--text-muted);margin-top:4px">左=天干十神（外显角色）| 右=地支藏干（内在底色，浅色）</p>';
   html += '</div></div>';
 
   // === 每个十神的单独解析 ===
@@ -2803,9 +2967,87 @@ function renderShishen(result) {
     summary += `<p><strong>格局：</strong>${result.pattern.matches[0].name}。${result.pattern.matches[0].desc}</p>`;
   }
 
-  summary += `<p style="font-size:0.85rem;color:var(--text-muted)">⚠ 十神分析反映的是先天禀赋倾向，后天的努力、选择和环境同样重要。了解十神格局是为了发挥优势、弥补不足，而非给自己设限。</p>`;
+  summary += `<p style="font-size:0.85rem;color:var(--text-muted);margin-top:8px">⚠ 天干十神分析反映的是先天禀赋倾向，地支藏干揭示内在真实底色。了解十神格局是为了发挥优势、弥补不足，而非给自己设限。</p>`;
   html += summary;
   html += `</div>`;
+
+  // === 表里分析 (同级别) ===
+  html += '<div class="analysis-block"><h4>🔍 表里分析</h4>';
+  html += '<p style="font-size:0.82rem;color:var(--text-muted);margin:4px 0">天干十神是公开角色（明的），地支藏干是内在底色（暗的）。一致叫"表里如一"，冲突叫"外和内逆"。</p>';
+
+  result.pillars.forEach(function(p, i) {
+    const tgShen = result.tenGods[i];
+    const cg = DZ_CG[p.branch] || [];
+    if (cg.length === 0) return;
+    const mainHidden = cg[0];
+    const mainIdx = TG.indexOf(mainHidden);
+    if (mainIdx < 0) return;
+
+    const dayStemIdx = result.dayStemIdx;
+    // 日柱特殊处理：天干为日主，看地支本气与日主的关系
+    let tgName = tgShen.name;
+    let mainShenIdx;
+
+    if (p.name === '日柱') {
+      // 日柱地支本气与日主的关系
+      if (mainIdx === dayStemIdx) { mainShenIdx = 0; }
+      else {
+        const hWx = WX_TG[mainIdx], dayWx = WX_TG[dayStemIdx];
+        const wxDiff = (wxIdx(hWx) - wxIdx(dayWx) + 5) % 5;
+        const sameYY = YY_TG[dayStemIdx] === YY_TG[mainIdx];
+        if (wxDiff === 0) mainShenIdx = sameYY ? 0 : 1;
+        else if (wxDiff === 1) mainShenIdx = sameYY ? 2 : 3;
+        else if (wxDiff === 2) mainShenIdx = sameYY ? 4 : 5;
+        else if (wxDiff === 3) mainShenIdx = sameYY ? 7 : 6;
+        else mainShenIdx = sameYY ? 9 : 8;
+      }
+      const dgName = SHISHEN_FULL[mainShenIdx];
+      if (dgName === tgName || dgName === '比肩') {
+        html += '<p style="font-size:0.8rem;margin:4px 0;color:var(--jade)"><strong>日柱</strong>：日主坐' + mainHidden + '（' + dgName + '）→ ✅ 表里如一，自我认知与内在一致</p>';
+      } else {
+        const mtInfo = getMarriageType(result);
+        const simpleDG = {"正官":"规则感强，对自己要求高，做事有底线","七杀":"内心有股不服输的劲，压力越大越能爆发","正财":"骨子里务实稳重，看重实实在在的积累","偏财":"天生灵活善变，对机会嗅觉敏锐，慷慨大方","正印":"内心温和包容，重视精神追求，有慈悲心","偏印":"思维独特，喜欢钻研，有偏才天赋，适合深耕一门技术","食神":"天性乐观豁达，有创造力，懂得享受生活","伤官":"才华横溢，聪明机智，不拘一格，表达力强","比肩":"独立自强，自尊心强，重视平等和友情","劫财":"竞争意识强，善于社交，行动力突出，不甘人后"};
+        html += '<p style="font-size:0.8rem;margin:4px 0"><strong>日柱</strong>：日主' + result.dayMaster.stem + '坐' + p.branch + '（' + mainHidden + '本气为' + dgName + '）：' + (simpleDG[dgName]||dgName) + '</p>';
+      }
+      return;
+    }
+
+    if (mainIdx === dayStemIdx) { mainShenIdx = 0; }
+    else {
+      const hWx = WX_TG[mainIdx], dayWx = WX_TG[dayStemIdx];
+      const wxDiff = (wxIdx(hWx) - wxIdx(dayWx) + 5) % 5;
+      const sameYY = YY_TG[dayStemIdx] === YY_TG[mainIdx];
+      if (wxDiff === 0) mainShenIdx = sameYY ? 0 : 1;
+      else if (wxDiff === 1) mainShenIdx = sameYY ? 2 : 3;
+      else if (wxDiff === 2) mainShenIdx = sameYY ? 4 : 5;
+      else if (wxDiff === 3) mainShenIdx = sameYY ? 7 : 6;
+      else mainShenIdx = sameYY ? 9 : 8;
+    }
+    const dgName = SHISHEN_FULL[mainShenIdx];
+
+    if (tgName !== dgName && tgName !== '日主') {
+      html += '<p style="font-size:0.8rem;margin:4px 0">';
+      html += '<strong>' + p.name + '</strong>：天干透<strong style=\"color:var(--cinnabar)\">' + tgName + '</strong>（' + getShenMeaning(tgName) + '），';
+      html += '地支藏<strong style=\"color:var(--azure)\">' + dgName + '</strong>（' + getShenMeaning(dgName) + '）→ ';
+      html += '<span style=\"color:#e65100\">外' + tgName + '内' + dgName + '</span>：' + getContradiction(tgName, dgName);
+      // Check if this year triggers the hidden branch
+      const yrBranch = DZ[result.dayun.liunianGZ.branchIdx];
+      const dyBranch = result.dayun.currentDayun.branch;
+      if (yrBranch === p.branch) {
+        html += ' <span style=\"color:var(--cinnabar);font-size:0.75rem\">⚠今年流年' + yrBranch + '引动' + p.name + '地支，内在' + dgName + '的一面今年显现。</span>';
+      } else if (dyBranch === p.branch) {
+        html += ' <span style=\"color:#e65100;font-size:0.75rem\">当前大运' + dyBranch + '引动' + p.name + '地支，内在' + dgName + '在此十年内持续显现。</span>';
+      } else {
+        html += ' <span style=\"color:var(--text-muted);font-size:0.72rem\">（今年流年' + yrBranch + '未引动此柱，暗藏面暂不显现）</span>';
+      }
+      html += '</p>';
+    } else if (tgName === dgName) {
+      html += '<p style="font-size:0.8rem;margin:4px 0;color:var(--jade)">';
+      html += '<strong>' + p.name + '</strong>：天干地支均为<strong>' + tgName + '</strong> → ✅ 表里如一';
+      html += '</p>';
+    }
+  });
+  html += '</div>';
 
   return html;
 }
@@ -2892,12 +3134,12 @@ function renderChongHe(result) {
     html += `<div class="analysis-block"><h4>🔵 三合局 — 力量的汇聚</h4>`;
     ch.sanHeList.forEach((s, i) => {
       html += `<div style="margin:10px 0;padding:12px;background:var(--paper-cream);border-radius:8px;border-left:3px solid var(--water-blue)">
-        <p><strong>三合${s.hua}局</strong>：${s.found.join('、')}形成${s.hua}的力量</p>
+        <p><strong>三合${s.hua}局</strong>：${s.foundNames.join('、')}形成${s.hua}的力量</p>
         <p style="font-size:0.85rem;color:var(--text-secondary)">${s.meaning}</p>
         <div style="margin-top:6px;font-size:0.82rem;color:var(--text-muted)">
           <p>• <strong>${s.hua}的性质：</strong>${s.hua === '水' ? '智慧、流动、沟通、适应力强' : s.hua === '木' ? '成长、仁爱、创造力、生命力' : s.hua === '火' ? '热情、行动、知名度、爆发力' : '规则、义气、决断力、执行力'}</p>
           <p>• <strong>应用：</strong>在${s.hua}相关的领域（${s.hua === '水' ? '交通/传媒/贸易' : s.hua === '木' ? '教育/医疗/环保' : s.hua === '火' ? '演艺/餐饮/能源' : '金融/法律/制造'}）更容易成功</p>
-          ${s.found.length === 3 ? '<p>• 三支俱全，力量完整，是强势的利好信号</p>' : '<p>• 尚缺一支，大运流年补齐时可激发完整力量</p>'}
+          ${s.found.length === 3 ? '<p>• 三支俱全，力量完整，是强势的利好信号</p>' : '<p>• 尚缺一支，大运流年补齐时可激发完整力量。' + getSanHeLiunian(result, s) + '</p>'}
         </div>
       </div>`;
     });
@@ -2935,7 +3177,7 @@ function renderDayun(result) {
   // Main luck pillar table with吉凶 analysis
   html += `<div class="analysis-block"><h4>📊 八步大运 — 各维度吉凶总览</h4>`;
   html += `<div style="overflow-x:auto"><table class="paipan-table" style="font-size:0.82rem">
-    <tr><th>#</th><th>大运</th><th>干支</th><th>十神</th><th>年龄段</th><th>事业</th><th>婚姻</th><th>财富</th><th>健康</th></tr>`;
+    <tr><th>#</th><th>大运</th><th>干支</th><th>十神</th><th>年龄段</th><th>学业</th><th>事业</th><th>婚姻</th><th>财富</th><th>健康</th></tr>`;
 
   dy.luckPillars.forEach((lp, i) => {
     const isCurrent = lp === dy.currentDayun;
@@ -2945,7 +3187,7 @@ function renderDayun(result) {
       <td>${i+1}${isCurrent?' ←':''}</td>
       <td>${lp.gz}</td><td>${lp.stem}+${lp.branch}</td>
       <td style="font-size:0.78rem">${a.tgName}</td><td>${lp.range}</td>
-      <td>${jxBadge(a.career.level)}</td><td>${jxBadge(a.marriage.level)}</td>
+      <td>${jxBadge(a.study.level)}</td><td>${jxBadge(a.career.level)}</td><td>${jxBadge(a.marriage.level)}</td>
       <td>${jxBadge(a.wealth.level)}</td><td>${jxBadge(a.health.level)}</td>
     </tr>`;
   });
@@ -2991,6 +3233,7 @@ function renderLuckDetail(a) {
     return `<span style="color:${clr};font-weight:bold">[${lvl}]</span> ${txt}`;
   };
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div style="padding:10px;background:var(--paper-cream);border-radius:6px"><strong>📚 学业</strong><br>${jxTag(a.study.level, a.study.text)}</div>
     <div style="padding:10px;background:var(--paper-cream);border-radius:6px"><strong>💼 事业</strong><br>${jxTag(a.career.level, a.career.text)}</div>
     <div style="padding:10px;background:var(--paper-cream);border-radius:6px"><strong>💕 婚姻</strong><br>${jxTag(a.marriage.level, a.marriage.text)}</div>
     <div style="padding:10px;background:var(--paper-cream);border-radius:6px"><strong>💰 财富</strong><br>${jxTag(a.wealth.level, a.wealth.text)}</div>
@@ -3109,6 +3352,74 @@ function renderShensha(result) {
     html += '</div>';
   }
 
+  // Apply activation rules to get specific conclusions
+  html += '<div class="analysis-block"><h4>⚡ 神煞激活分析</h4>';
+  var conclusions = [];
+
+  // 1. Check if吉神 are on 日柱 or 月柱 (core pillars)
+  var jiOnCore = ss.filter(function(s){return (SS_INFO[s.name]||{}).type==='吉' && (s.pillar==='日柱'||s.pillar==='月柱')});
+  if (jiOnCore.length > 0) {
+    conclusions.push({text:'吉神落在日/月核心柱位：<strong>' + jiOnCore.map(function(s){return s.name}).join('、') + '</strong> — 吉性加倍，对一生影响直接而深远。', level:'good'});
+  }
+
+  // 2. Check for duplicated shensha (叠加)
+  var nameCounts = {};
+  ss.forEach(function(s){nameCounts[s.name]=(nameCounts[s.name]||0)+1});
+  var duplicated = Object.entries(nameCounts).filter(function(e){return e[1]>1});
+  if (duplicated.length > 0) {
+    conclusions.push({text:'能量叠加：<strong>' + duplicated.map(function(e){return e[0]+'出现'+e[1]+'次'}).join('、') + '</strong> — 此神煞影响力翻倍，需重点关注。', level:'neutral'});
+  }
+
+  // 3. Check current dayun/liunian triggering (引动)
+  var currentDayunBranch = result.dayun.currentDayun.branch;
+  var currentLiunianBranch = DZ[result.dayun.liunianGZ.branchIdx];
+  var triggered = ss.filter(function(s){
+    return s.pillar === '日柱' && (s.name.includes(currentDayunBranch) || false);
+  });
+  if (triggered.length === 0 && ss.length > 0) {
+    conclusions.push({text:'当前大运' + result.dayun.currentDayun.gz + '、流年' + result.dayun.currentLiunian + '：日柱神煞逢运引动，今年是神煞应象的关键时期。', level:'neutral'});
+  }
+
+  // 4. Overall assessment
+  var jiAll = ss.filter(function(s){return (SS_INFO[s.name]||{}).type==='吉'}).length;
+  var xiongAll = ss.filter(function(s){return (SS_INFO[s.name]||{}).type==='凶'}).length;
+  if (jiAll > xiongAll + 2) {
+    conclusions.push({text:'整体判断：吉神数量明显多于凶煞，且核心柱位吉神有力 — <strong style=\"color:var(--jade)\">神煞层面较为吉利</strong>。', level:'good'});
+  } else if (xiongAll > jiAll + 2) {
+    conclusions.push({text:'整体判断：凶煞数量多于吉神，需关注凶煞所在的柱位领域 — <strong style=\"color:var(--cinnabar)\">建议针对性防范</strong>。但凶煞可制化，大运流年逢制时可化解。', level:'bad'});
+  } else {
+    conclusions.push({text:'整体判断：吉凶神煞较为均衡 — 命局本身吉凶互见，大运流年是决定神煞应象方向的关键。', level:'neutral'});
+  }
+
+  conclusions.forEach(function(c) {
+    html += '<div style=\"margin:6px 0;padding:10px;background:' + (c.level==='good'?'#e8f5e9':c.level==='bad'?'#fef5f5':'#faf7f0') + ';border-radius:4px;border-left:3px solid ' + (c.level==='good'?'var(--jade)':c.level==='bad'?'var(--cinnabar)':'var(--gold)') + '\">';
+    html += '<p style=\"font-size:0.85rem\">' + c.text + '</p></div>';
+  });
+  html += '<p style=\"font-size:0.78rem;color:var(--text-muted);margin-top:4px\">神煞如满天星斗，格局是日月。神煞不孤立，组合方见真。</p>';
+  html += '</div>';
+
+  // Classic shensha combinations
+  html += '<div class="analysis-block"><h4>🔗 经典神煞组合判定</h4>';
+  var combos = [];
+  var shenNames = ss.map(function(s){return s.name});
+  if (shenNames.includes('羊刃') && shenNames.includes('七杀')) combos.push({combo:'羊刃 + 七杀 → 羊刃驾杀', meaning:'武贵之格，掌生杀大权', level:'good'});
+  if (shenNames.includes('羊刃') && result.tenGods.some(function(t){return t.name==='伤官'})) combos.push({combo:'羊刃 + 伤官', meaning:'性格极端，易走偏锋，需修身养性', level:'bad'});
+  if (shenNames.includes('天乙贵人') && shenNames.includes('驿马')) combos.push({combo:'天乙贵人 + 驿马 → 贵人带马', meaning:'在奔波中遇贵人，异地发展有利', level:'good'});
+  if (shenNames.includes('华盖') && shenNames.includes('空亡')) combos.push({combo:'华盖 + 空亡', meaning:'聪明但难落地，想法多成事少', level:'neutral'});
+  if (shenNames.includes('桃花') && shenNames.includes('劫煞')) combos.push({combo:'桃花 + 劫煞 → 桃花带劫', meaning:'需防因色破财、感情纠纷', level:'bad'});
+  if (shenNames.includes('将星') && shenNames.includes('文昌星')) combos.push({combo:'将星 + 文昌 → 儒将之才', meaning:'文武双全，能文能武', level:'good'});
+  if (shenNames.includes('驿马') && shenNames.includes('空亡')) combos.push({combo:'驿马 + 空亡 → 马落空亡', meaning:'奔波劳碌却白忙一场，宜选准方向再行动', level:'bad'});
+
+  if (combos.length > 0) {
+    combos.forEach(function(c) {
+      html += '<div style=\"margin:4px 0;padding:8px;background:' + (c.level==='good'?'#e8f5e9':c.level==='bad'?'#fef5f5':'#faf7f0') + ';border-radius:4px;border-left:3px solid ' + (c.level==='good'?'var(--jade)':c.level==='bad'?'var(--cinnabar)':'var(--gold)') + '\">';
+      html += '<strong>' + c.combo + '</strong>：' + c.meaning + '</div>';
+    });
+  } else {
+    html += '<p style=\"font-size:0.85rem;color:var(--text-muted)\">命局中未发现经典神煞组合。这不代表不好——独立的吉神或凶煞更单纯，容易被调候和运助。</p>';
+  }
+  html += '</div>';
+
   html += `<div class="analysis-block"><h4>⚠ 神煞使用须知</h4>
     <p style="font-size:0.9rem">神煞是八字分析中的辅助参考指标，<strong>不单独决定吉凶</strong>。使用原则：</p>
     <p>• <strong>吉神需运助：</strong>吉神需要大运流年的配合才能发挥最大作用，如天乙贵人逢印运则贵人力更强</p>
@@ -3195,6 +3506,31 @@ function renderZonghe(result) {
   };
 
   const careerInfo = CAREER_MAP[dominantName] || { fields:["综合发展"], traits:"适应力强", advice:"根据大运流年调整职业方向" };
+
+  // 学业分析
+  const STUDY_MAP = {
+    "正官": { subjects:"文科/政法/管理", direction:"文科", style:"勤奋自律，适合在规范环境中学习", advice:"打好基础，考取相关证书，为未来公职或管理岗位做准备" },
+    "七杀": { subjects:"理工/军警/医学", direction:"理科", style:"抗压能力强，越挑战越成长", advice:"设定清晰目标，分解为阶段性任务逐步攻克；竞赛/考研适合你" },
+    "正财": { subjects:"金融/会计/经济", direction:"文理均可", style:"踏实稳重，一步一个脚印", advice:"深耕专业领域，提前规划职业路径；实习经历很重要" },
+    "偏财": { subjects:"商科/贸易/市场营销", direction:"文科", style:"灵活多变，信息获取能力强", advice:"多参与社会实践和项目，拓展视野与人脉；不宜死读书" },
+    "正印": { subjects:"教育/文学/历史/哲学", direction:"文科", style:"好学深思，理解力强", advice:"持续积累知识，考取高学历；适合做研究或教学工作" },
+    "偏印": { subjects:"技术/工程/计算机", direction:"理科", style:"专注力强，适合深度钻研", advice:"选定一个技术方向深入，成为不可替代的专才" },
+    "食神": { subjects:"设计/艺术/烹饪/护理", direction:"文理均可", style:"创造力丰富，寓学于乐", advice:"将兴趣与学业结合，选择自己喜欢的专业方向" },
+    "伤官": { subjects:"艺术/传媒/写作/表演", direction:"文科", style:"才华突出，表达力强", advice:"发挥创意天赋，参加竞赛和展览积累作品；注意团队合作" },
+    "比肩": { subjects:"体育/竞技/团队项目", direction:"文理均可", style:"独立自强，适合自主学习", advice:"找到学习伙伴互相督促；设定明确的竞争目标" },
+    "劫财": { subjects:"市场营销/公关/商务", direction:"文科", style:"社交能力强，善于获取信息", advice:"利用人脉资源辅助学习；参加社团锻炼领导力" },
+  };
+  const studyInfo = STUDY_MAP[dominantName] || { subjects:"综合学科", direction:"文理均可", style:"适应力强", advice:"根据兴趣和特长选择方向" };
+  html += '<div class="analysis-block"><h4>📚 学业 — 详细分析</h4>';
+  html += '<div style="margin:10px 0;padding:12px;background:var(--paper-cream);border-radius:8px">';
+  html += '<p><strong>主导十神：</strong>' + dominantName + ' — ' + studyInfo.style + '</p>';
+  html += '<p><strong>适合方向：</strong><span style="display:inline-block;background:var(--paper-dark);padding:2px 10px;border-radius:10px;margin:2px;font-size:0.85rem;font-weight:bold">' + studyInfo.direction + '</span></p>';
+  html += '<p><strong>学科领域：</strong></p>';
+  html += '<p style="font-size:0.9rem;margin:4px 0"><span style="display:inline-block;background:var(--paper-dark);padding:2px 10px;border-radius:10px;margin:2px;font-size:0.82rem">' + studyInfo.subjects + '</span></p>';
+  html += '<p style="margin-top:8px;font-size:0.88rem;color:var(--text-muted)"><strong>💡 学业建议：</strong>' + studyInfo.advice + '</p>';
+  html += '</div></div>';
+
+  // 事业分析
   html += `<div class="analysis-block"><h4>💼 事业 — 详细分析</h4>
     <p>${interp.career}</p>
     <div style="margin:10px 0;padding:12px;background:var(--paper-cream);border-radius:8px">
@@ -3236,6 +3572,7 @@ function renderZonghe(result) {
     <p>${interp.marriage}</p>
     <div style="margin:10px 0;padding:12px;background:var(--paper-cream);border-radius:8px">
       <p><strong>配偶宫：</strong>日支${spousePalace}（五行属${spouseWx}）</p>
+      <p><strong>日柱婚姻类型：</strong>${getMarriageType(result)}</p>
       <p><strong>理想伴侣属性：</strong></p>
       <p style="font-size:0.9rem">✅ 五行宜<strong>${idealWx.join('、')}</strong>（${idealWx.map(w=>lifeWxDir[w]+'方位/'+lifeWxColor[w]).join('，')}），可互补命局不足，相互成就。</p>
       <p style="font-size:0.9rem">❌ 避免五行<strong>${avoidWx.join('、')}</strong>过旺的伴侣，易加剧命局失衡。</p>
@@ -3686,6 +4023,95 @@ function renderMultiShishen(results) {
   html += '<p style="font-size:0.82rem;color:var(--text-muted);margin-top:6px">十神互涉是合盘分析中最核心的维度——它揭示了两人在对方命局中的角色定位：是贵人还是压力、是福星还是竞争者。理解这层关系，就能更好地调整相处模式，扬长避短。</p>';
   html += '</div>';
   return html;
+}
+
+function getShenMeaning(name) {
+  const m = {"正官":"守规矩","七杀":"反叛激烈","正财":"求财安稳","偏财":"冒险激进","正印":"温和包容","偏印":"独特孤僻","食神":"温厚善良","伤官":"挑剔叛逆","比肩":"合作分享","劫财":"暗藏竞争","日主":"自我"};
+  return m[name] || name;
+}
+
+function getContradiction(tg, dg) {
+  const pairs = {
+    '正官+七杀':'外表顺从守规矩，内心反叛不服管。流年引动地支时可能突然爆发冲突。',
+    '正官+伤官':'表面严肃正统，内心恃才傲物。伤官见官，易与权威产生矛盾。',
+    '正财+七杀':'看似求财安稳踏实，实则内心冒险激进。投资理财需防冲动。',
+    '正财+劫财':'表面重视积累，内心慷慨大方。理财需注意"左手进右手出"。',
+    '正印+伤官':'表面温和包容大度，内心挑剔叛逆不服。适合独立创作类工作。',
+    '正印+偏财':'外表重精神追求，内心实则重物质享受。',
+    '比肩+劫财':'表面合作分享大方，实际暗藏竞争意识。合作需明确利益分配。',
+    '食神+七杀':'外表温厚随和，内心激烈果断。关键时刻会展现截然不同的一面。',
+    '正官+偏印':'表面规矩正统，内心独特孤僻。适合需要独立思考的工作。',
+    '七杀+正印':'外表激烈果断，内心温和包容。外刚内柔，刀子嘴豆腐心。',
+    '偏财+正官':'表面灵活多变，内心重视规则。商业嗅觉敏锐但做事有底线。',
+    '伤官+正印':'外显才华挑剔，内心包容温和。表里相反，才华与谦逊并存。',
+  };
+  const key = tg + '+' + dg;
+  return pairs[key] || '表里不一，需注意言行与内心的协调。流年大运引动地支藏干时，暗藏的一面才会真正浮出来。';
+}
+
+function getMarriageType(result) {
+  // 60甲子日柱婚姻类型速查 (from 神算子.md chapter 6.2)
+  const dayGZ = result.pillars[2].gz;
+  const MARRIAGE_TABLE = {
+    '甲子':'互补型-对方包容你，但也容易被惯出小脾气',
+    '乙丑':'现实型-婚姻质量取决于经济基础',
+    '丙寅':'疏离型-对方不善表达感情，但内心很在乎你',
+    '丁卯':'沉默型-比丙寅更细腻，"嘴上不说，心里全都有"',
+    '戊辰':'较劲型-两个人都要强，谁也不让谁',
+    '己巳':'师生型-对方比你成熟，愿意教你很多',
+    '庚午':'考官型-对方要求高，但责任感强',
+    '辛未':'怪才型-对方有点难搞，一旦走心就死心塌地',
+    '壬申':'疏离型-对方需要很多独处时间',
+    '癸酉':'敏感型-对方情绪变化很难把握',
+    '甲戌':'波动型-大起大落，要么很好要么很差',
+    '乙亥':'港湾型-稳定，对方是你的避风港',
+    '丙子':'考官型-对方不断鞭策你进步，但可能很累',
+    '丁丑':'轻松型-对方懂得生活情趣',
+    '戊寅':'虐恋型-爱得很深也很痛',
+    '己卯':'控制型-对方控制欲可能很强',
+    '庚辰':'冷漠型-对方比较冷，但内心有坚持',
+    '辛巳':'考官型-眼里揉不得沙子的典型',
+    '壬午':'踏实型-对方是过日子的人',
+    '癸未':'争执型-过了磨合期反而很牢固',
+    '甲申':'虐恋型-爱得轰轰烈烈也容易受伤',
+    '乙酉':'占有型-对方占有欲和控制欲都强',
+    '丙戌':'搭档型-食神生财，比较容易幸福',
+    '丁亥':'严慈型-考官+正印，既严格也保护你',
+    '戊子':'平淡型-平淡但长久',
+    '己丑':'权力型-容易有谁说了算的问题',
+    '庚寅':'浪漫型-有激情但不一定稳定',
+    '辛卯':'感性型-对方可能比较情绪化',
+    '壬辰':'能力型-大起大落，对方往往有能力',
+    '癸巳':'靠谱型-值得托付',
+    '甲午':'相爱相杀型-容易有相爱相杀的感觉',
+    '乙未':'多变型-需用心经营',
+    '丙申':'刺激型-比较刺激也比较累',
+    '丁酉':'自由型-双方都需要空间，搭档型基础',
+    '戊戌':'冷战型-容易陷入冷战',
+    '己亥':'安逸型-比较安逸稳定',
+    '庚子':'挑剔型-容易有嘴毒的问题',
+    '辛丑':'精神型-需要精神层面契合',
+    '壬寅':'搭档型-食神生财，比较容易幸福',
+    '癸卯':'细腻型-对方很懂得照顾你的感受',
+    '甲辰':'财务型-容易有财务纠纷',
+    '乙巳':'争吵型-伤官见官，容易有争吵',
+    '丙午':'争夺型-容易出现第三者问题',
+    '丁未':'和谐型-食神生财，比较和谐',
+    '戊申':'搭档型-食神生财，比较不错',
+    '己酉':'享受型-对方很懂得享受生活',
+    '庚戌':'沟通型-需要更多的沟通',
+    '辛亥':'口舌型-伤官见官，容易有口舌之争',
+    '壬子':'边界型-需要注意边界感',
+    '癸丑':'复杂型-比较复杂，需用心经营'
+  };
+  var info = MARRIAGE_TABLE[dayGZ] || '综合型-需结合具体命局分析';
+  var parts = info.split('-');
+  var typeName = parts[0];
+  var typeDesc = parts[1] || '';
+  var typeColor = typeName.includes('搭档') || typeName.includes('和谐') || typeName.includes('轻松') || typeName.includes('踏实') || typeName.includes('靠谱') || typeName.includes('安逸') || typeName.includes('港湾') || typeName.includes('享受') ? 'var(--jade)' :
+                  typeName.includes('考官') || typeName.includes('虐恋') || typeName.includes('控制') || typeName.includes('占有') || typeName.includes('争夺') || typeName.includes('争吵') ? 'var(--cinnabar)' :
+                  typeName.includes('裁判') || typeName.includes('挑剔') || typeName.includes('口舌') ? '#e65100' : 'var(--gold)';
+  return '<span style="color:' + typeColor + ';font-weight:bold">' + typeName + '</span> — ' + typeDesc;
 }
 
 function getAdvantage(idx, viewer, target) {
